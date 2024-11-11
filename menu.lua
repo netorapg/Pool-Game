@@ -10,8 +10,8 @@ function menu.load()
 
     -- Definir os botões do menu
     buttons = {
-        {text = "Novo Jogo", x = 300, y = 200, width = 200, height = 50, action = startGame},
-        {text = "Instruções", x = 300, y = 300, width = 200, height = 50, action = showInstructions},
+        { text = "Novo Jogo",  x = 300, y = 200, width = 200, height = 50, action = startGame },
+        { text = "Instruções", x = 300, y = 300, width = 200, height = 50, action = showInstructions },
     }
 end
 
@@ -26,13 +26,12 @@ function menu.draw()
 
     -- Desenhar botões
     for _, button in ipairs(buttons) do
-        love.graphics.setColor(0.2, 0.6, 0.2)  -- Cor verde para o botão
+        love.graphics.setColor(0.2, 0.6, 0.2) -- Cor verde para o botão
         love.graphics.rectangle("fill", button.x, button.y, button.width, button.height)
-        love.graphics.setColor(1, 1, 1)  -- Cor branca para o texto
+        love.graphics.setColor(1, 1, 1)       -- Cor branca para o texto
         love.graphics.printf(button.text, button.x, button.y + 15, button.width, "center")
     end
 end
-
 
 function menu.mousepressed(x, y)
     -- Verificar se algum botão foi clicado
