@@ -7,13 +7,20 @@ local tableWidth, tableHeight = 600, 300
 local tableX, tableY = (love.graphics.getWidth() - tableWidth) / 2, (love.graphics.getHeight() - tableHeight) / 2
 local balls = {}
 
+-- Variáveis do taco
+local cue = {x = 0, y = 0, angle = 0, power = 0, maxPower = 300}
+local isAiming = false  -- Verifica se o jogador está ajustando a força
+
 function love.load()
     menu.load()
 end
 
 function love.update(dt)
     if gameActive then
-        updateBalls(dt)  -- Atualizar a física das bolas
+        updateBalls(dt)
+        if isAiming then
+            updateCue()
+        end
     else
         menu.update(dt)
     end
@@ -23,6 +30,9 @@ function love.draw()
     if gameActive then
         drawTable()
         drawBalls()
+        if isAiming then
+            drawCue()
+        end
     else
         menu.draw()
     end
@@ -30,9 +40,19 @@ end
 
 function love.mousepressed(x, y, button, istouch, presses)
     if gameActive then
-        hitCueBall(x, y)
+        if button == 1 then
+            startAiming(x, y)
+        end
     else
         menu.mousepressed(x, y)
+    end
+end
+
+function love.mousereleased(x, y, button, istouch, presses)
+    if gameActive then
+        if button == 1 and isAiming then
+            shootCueBall()
+        end
     end
 end
 
@@ -110,17 +130,39 @@ function updateBalls(dt)
     checkBallCollisions()
 end
 
-function hitCueBall(x, y)
+function updateCue()
     local cueBall = balls[1]
-    local dx, dy = x - cueBall.x, y - cueBall.y
-    local distance = math.sqrt(dx * dx + dy * dy)
-
-    local force = 200
-    cueBall.vx = (dx / distance) * force
-    cueBall.vy = (dy / distance) * force
+    local mx, my = love.mouse.getPosition()
+    cue.angle = math.atan2(my - cueBall.y, mx - cueBall.x)
+    cue.power = math.min(cue.maxPower, math.sqrt((mx - cueBall.x)^2 + (my - cueBall.y)^2))
 end
 
--- Função para verificar colisões entre bolas
+function drawCue()
+    local cueBall = balls[1]
+    love.graphics.setColor(0.8, 0.5, 0.3)
+    love.graphics.push()
+    love.graphics.translate(cueBall.x, cueBall.y)
+    love.graphics.rotate(cue.angle)
+    love.graphics.rectangle("fill", -cue.power, -2, cue.power, 4)
+    love.graphics.pop()
+end
+
+function startAiming(x, y)
+    local cueBall = balls[1]
+    local dx, dy = x - cueBall.x, y - cueBall.y
+    if math.sqrt(dx * dx + dy * dy) < cueBall.radius * 2 then
+        isAiming = true
+    end
+end
+
+function shootCueBall()
+    local cueBall = balls[1]
+    cueBall.vx = cue.power * math.cos(cue.angle)
+    cueBall.vy = cue.power * math.sin(cue.angle)
+    isAiming = false
+    cue.power = 0
+end
+
 function checkBallCollisions()
     for i = 1, #balls - 1 do
         for j = i + 1, #balls do
@@ -130,7 +172,6 @@ function checkBallCollisions()
             local distance = math.sqrt(dx * dx + dy * dy)
 
             if distance < ball1.radius + ball2.radius then
-                -- Calcula as velocidades após a colisão
                 local nx, ny = dx / distance, dy / distance
                 local p = 2 * (ball1.vx * nx + ball1.vy * ny - ball2.vx * nx - ball2.vy * ny) / 2
 
