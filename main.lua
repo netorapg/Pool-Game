@@ -8,9 +8,11 @@ local tableX, tableY = (love.graphics.getWidth() - tableWidth) / 2, (love.graphi
 local balls = {}
 
 -- Variáveis do taco
-local cue = {x = 0, y = 0, angle = 0, power = 0, maxPower = 300}
-local isAiming = false  -- Verifica se o jogador está ajustando a força
-local playerScore = 0
+local cue = {x = 0, y = 0, angle = 0, power = 0, maxPower = 500}
+local isAiming = false
+local currentPlayer = 1
+local scores = {0, 0}
+local foulOccurred = false
 
 function love.load()
     menu.load()
@@ -35,17 +37,17 @@ function love.draw()
             drawCue()
         end
 
-
-        --Exibir pontuação
+        -- Exibir pontuação
         love.graphics.setColor(1, 1, 1)
-        love.graphics.print("Pontuação: " .. playerScore, 10, 10)
+        love.graphics.print("Jogador 1: " .. scores[1], 10, 10)
+        love.graphics.print("Jogador 2: " .. scores[2], 10, 30)
+        love.graphics.print("Turno do Jogador " .. currentPlayer, 10, 50)
     else
         menu.draw()
     end
 end
 
-
--- Função para verificicar se a bola foi encaçapada
+-- Função para verificar se a bola foi encaçapada
 function checkPockets()
     local holes = {
         {x = tableX, y = tableY},
@@ -61,9 +63,17 @@ function checkPockets()
         for _, hole in ipairs(holes) do
             local dx, dy = ball.x - hole.x, ball.y - hole.y
             local distance = math.sqrt(dx * dx + dy * dy)
-            if distance < 15 then  -- 15 é o raio do buraco
-                table.remove(balls, i)
-                playerScore = playerScore + 1
+            if distance < 15 then
+                if i == 1 then -- Se a bola encaçapada for a branca
+                    foulOccurred = true
+                    -- Reposicionar a bola branca no centro da mesa
+                    ball.x = tableX + 100
+                    ball.y = tableY + tableHeight / 2
+                    ball.vx, ball.vy = 0, 0
+                else
+                    scores[currentPlayer] = scores[currentPlayer] + 1
+                    table.remove(balls, i)
+                end
                 break
             end
         end
@@ -144,9 +154,15 @@ function drawBalls()
 end
 
 function updateBalls(dt)
+    local ballsMoving = false
+
     for i, ball in ipairs(balls) do
         ball.x = ball.x + ball.vx * dt
         ball.y = ball.y + ball.vy * dt
+
+        if ball.vx ~= 0 or ball.vy ~= 0 then
+            ballsMoving = true
+        end
 
         if ball.x - ball.radius < tableX or ball.x + ball.radius > tableX + tableWidth then
             ball.vx = -ball.vx
@@ -155,12 +171,26 @@ function updateBalls(dt)
             ball.vy = -ball.vy
         end
 
-        ball.vx = ball.vx * 0.98
-        ball.vy = ball.vy * 0.98
+        ball.vx = ball.vx * 0.99
+        ball.vy = ball.vy * 0.99
     end
 
     checkPockets()
+
+    -- Só troca de turno quando ocorre uma falta
+    if foulOccurred == true then
+        foulOccurred = false -- Limpa a falta para o próximo turno
+        switchTurn()
+        
+       
+    end
+
     checkBallCollisions()
+end
+
+-- Função para alternar o turno
+function switchTurn()
+    currentPlayer = 3 - currentPlayer
 end
 
 function updateCue()
@@ -203,9 +233,21 @@ function checkBallCollisions()
             local ball2 = balls[j]
             local dx, dy = ball2.x - ball1.x, ball2.y - ball1.y
             local distance = math.sqrt(dx * dx + dy * dy)
+            local minDistance = ball1.radius + ball2.radius
 
-            if distance < ball1.radius + ball2.radius then
+            -- Verifica se as bolas estão colidindo
+            if distance < minDistance then
+                -- Normaliza a direção da colisão
                 local nx, ny = dx / distance, dy / distance
+                local overlap = minDistance - distance
+
+                -- Move as bolas para fora uma da outra proporcionalmente
+                ball1.x = ball1.x - nx * overlap / 2
+                ball1.y = ball1.y - ny * overlap / 2
+                ball2.x = ball2.x + nx * overlap / 2
+                ball2.y = ball2.y + ny * overlap / 2
+
+                -- Calcula a troca de velocidade usando a direção normal
                 local p = 2 * (ball1.vx * nx + ball1.vy * ny - ball2.vx * nx - ball2.vy * ny) / 2
 
                 ball1.vx = ball1.vx - p * nx

@@ -1,6 +1,7 @@
 {
     "Lua.diagnostics.globals": [
-        "love"
+        "love",
+        "switchTurn"
     ],
     "Lua.diagnostics.disable": [
         "undefined-global"
