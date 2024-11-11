@@ -10,6 +10,7 @@ local balls = {}
 -- Variáveis do taco
 local cue = {x = 0, y = 0, angle = 0, power = 0, maxPower = 300}
 local isAiming = false  -- Verifica se o jogador está ajustando a força
+local playerScore = 0
 
 function love.load()
     menu.load()
@@ -33,8 +34,39 @@ function love.draw()
         if isAiming then
             drawCue()
         end
+
+
+        --Exibir pontuação
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.print("Pontuação: " .. playerScore, 10, 10)
     else
         menu.draw()
+    end
+end
+
+
+-- Função para verificicar se a bola foi encaçapada
+function checkPockets()
+    local holes = {
+        {x = tableX, y = tableY},
+        {x = tableX + tableWidth / 2, y = tableY},
+        {x = tableX + tableWidth, y = tableY},
+        {x = tableX, y = tableY + tableHeight},
+        {x = tableX + tableWidth / 2, y = tableY + tableHeight},
+        {x = tableX + tableWidth, y = tableY + tableHeight}
+    }
+
+    for i = #balls, 1, -1 do
+        local ball = balls[i]
+        for _, hole in ipairs(holes) do
+            local dx, dy = ball.x - hole.x, ball.y - hole.y
+            local distance = math.sqrt(dx * dx + dy * dy)
+            if distance < 15 then  -- 15 é o raio do buraco
+                table.remove(balls, i)
+                playerScore = playerScore + 1
+                break
+            end
+        end
     end
 end
 
@@ -127,6 +159,7 @@ function updateBalls(dt)
         ball.vy = ball.vy * 0.98
     end
 
+    checkPockets()
     checkBallCollisions()
 end
 
