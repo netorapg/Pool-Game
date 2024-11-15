@@ -64,14 +64,29 @@ function checkPockets()
             local dx, dy = ball.x - hole.x, ball.y - hole.y
             local distance = math.sqrt(dx * dx + dy * dy)
             if distance < 15 then
-                if i == 1 then -- Se a bola encaçapada for a branca
+                if ball.type == "cue" then
+                    -- Penalidade: bola branca encaçapada
                     foulOccurred = true
-                    -- Reposicionar a bola branca no centro da mesa
-                    ball.x = tableX + 100
-                    ball.y = tableY + tableHeight / 2
+                    ball.x, ball.y = tableX + 100, tableY + tableHeight / 2
                     ball.vx, ball.vy = 0, 0
+                elseif ball.type == "8" then
+                    -- Regras para a bola 8
+                    if areAllPlayerBallsPocketed() then
+                        -- Jogador vence
+                        print("Jogador " .. currentPlayer .. " venceu!")
+                        love.event.quit()
+                    else
+                        -- Derrota por encaçapar a bola 8 antes
+                        print("Jogador " .. currentPlayer .. " perdeu!")
+                        love.event.quit()
+                    end
                 else
-                    scores[currentPlayer] = scores[currentPlayer] + 1
+                    -- Atualizar pontuação e designação de grupos
+                    if currentPlayerBallsType == nil then
+                        currentPlayerBallsType = ball.type
+                    elseif ball.type ~= currentPlayerBallsType then
+                        foulOccurred = true -- Jogador encaçapou a bola errada
+                    end
                     table.remove(balls, i)
                 end
                 break
@@ -79,6 +94,7 @@ function checkPockets()
         end
     end
 end
+
 
 function love.mousepressed(x, y, button, istouch, presses)
     if gameActive then
@@ -105,19 +121,63 @@ end
 
 function setupBalls()
     balls = {}
-    table.insert(balls, {x = tableX + 100, y = tableY + tableHeight / 2, radius = 10, color = {1, 1, 1}, vx = 0, vy = 0})
 
-    for i = 1, 7 do
-        table.insert(balls, {
-            x = tableX + 300 + (i * 20),
-            y = tableY + tableHeight / 2,
-            radius = 10,
-            color = {1, 0, 0},
-            vx = 0,
-            vy = 0
-        })
+    -- Bola branca
+    table.insert(balls, {
+        x = tableX + 100,
+        y = tableY + tableHeight / 2,
+        radius = 10,
+        color = {1, 1, 1},
+        vx = 0,
+        vy = 0,
+        type = "cue" -- Bola branca
+    })
+
+    -- Configuração do triângulo
+    local startX = tableX + tableWidth - 200 -- Posição inicial do triângulo
+    local startY = tableY + tableHeight / 2
+    local offset = 22 -- Espaço entre as bolas
+
+    -- Tabela de bolas (tipo e cor)
+    local ballSetup = {
+        {"solid", {1, 0, 0}}, -- Lisa vermelha
+        {"striped", {0, 0, 1}}, -- Listrada azul
+        {"solid", {1, 0.5, 0}}, -- Lisa laranja
+        {"striped", {0.5, 0, 0.5}}, -- Listrada roxa
+        {"8", {0, 0, 0}}, -- Bola 8
+        {"striped", {1, 1, 0}}, -- Listrada amarela
+        {"solid", {0, 1, 0}}, -- Lisa verde
+        {"striped", {0, 1, 1}}, -- Listrada ciano
+        {"solid", {1, 0.5, 0.5}}, -- Lisa rosa
+        {"striped", {0.5, 0.5, 1}}, -- Listrada lavanda
+        {"solid", {1, 1, 0}}, -- Lisa amarela
+        {"striped", {0.5, 1, 0.5}}, -- Listrada verde-claro
+        {"solid", {1, 0.5, 1}}, -- Lisa magenta
+        {"striped", {0.5, 0.5, 0}}, -- Listrada marrom
+        {"solid", {1, 1, 1}}, -- Lisa branca
+    }
+
+    -- Gerar bolas em forma de triângulo
+    local index = 1
+    for row = 0, 4 do
+        for col = 0, row do
+            if index <= #ballSetup then
+                local type, color = ballSetup[index][1], ballSetup[index][2]
+                table.insert(balls, {
+                    x = startX + row * offset,
+                    y = startY + (col - row / 2) * offset,
+                    radius = 10,
+                    color = color,
+                    vx = 0,
+                    vy = 0,
+                    type = type
+                })
+                index = index + 1
+            end
+        end
     end
 end
+
 
 function drawTable()
     local borderWidth = 20
