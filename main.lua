@@ -154,7 +154,7 @@ function setupBalls()
         {"striped", {0.5, 1, 0.5}}, -- Listrada verde-claro
         {"solid", {1, 0.5, 1}}, -- Lisa magenta
         {"striped", {0.5, 0.5, 0}}, -- Listrada marrom
-        {"solid", {1, 1, 1}}, -- Lisa branca
+        {"solid", {1, 0, 0}}, -- Lisa branca
     }
 
     -- Gerar bolas em forma de triângulo
