@@ -1,6 +1,8 @@
 -- main.lua
 local menu = require("menu")
 local gameActive = false
+local gameOver = false
+local gameOverMessage = ""
 
 -- Variáveis do jogo
 local tableWidth, tableHeight = 600, 300
@@ -10,8 +12,7 @@ local balls = {}
 -- Variáveis do taco
 local cue = {x = 0, y = 0, angle = 0, power = 0, maxPower = 500}
 local isAiming = false
-local currentPlayer = 1
-local scores = {0, 0}
+local score = 0
 local foulOccurred = false
 
 function love.load()
@@ -30,7 +31,9 @@ function love.update(dt)
 end
 
 function love.draw()
-    if gameActive then
+    if gameOver then
+        drawGameOverScreen()
+    elseif gameActive then
         drawTable()
         drawBalls()
         if isAiming then
@@ -39,9 +42,7 @@ function love.draw()
 
         -- Exibir pontuação
         love.graphics.setColor(1, 1, 1)
-        love.graphics.print("Jogador 1: " .. scores[1], 10, 10)
-        love.graphics.print("Jogador 2: " .. scores[2], 10, 30)
-        love.graphics.print("Turno do Jogador " .. currentPlayer, 10, 50)
+        love.graphics.print("Pontuação: " .. score, 10, 10)
     else
         menu.draw()
     end
@@ -71,22 +72,20 @@ function checkPockets()
                     ball.vx, ball.vy = 0, 0
                 elseif ball.type == "8" then
                     -- Regras para a bola 8
-                    if areAllPlayerBallsPocketed() then
+                    if areAllBallsPocketed() then
                         -- Jogador vence
-                        print("Jogador " .. currentPlayer .. " venceu!")
-                        love.event.quit()
+                        print("Você venceu!")
+                        gameOver = true
+                        gameOverMessage = "Você venceu!"
                     else
                         -- Derrota por encaçapar a bola 8 antes
-                        print("Jogador " .. currentPlayer .. " perdeu!")
-                        love.event.quit()
+                        print("Você perdeu!")
+                        gameOver = true
+                        gameOverMessage = "Você perdeu!"
                     end
                 else
-                    -- Atualizar pontuação e designação de grupos
-                    if currentPlayerBallsType == nil then
-                        currentPlayerBallsType = ball.type
-                    elseif ball.type ~= currentPlayerBallsType then
-                        foulOccurred = true -- Jogador encaçapou a bola errada
-                    end
+                    -- Atualizar pontuação
+                    score = score + 1
                     table.remove(balls, i)
                 end
                 break
@@ -95,9 +94,37 @@ function checkPockets()
     end
 end
 
+function drawGameOverScreen()
+    love.graphics.setColor(0, 0, 0, 0.7)
+    love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.printf(gameOverMessage, 0, love.graphics.getHeight() / 2 - 50, love.graphics.getWidth(), "center")
+
+    love.graphics.setColor(0.2, 0.8, 0.2)
+    love.graphics.rectangle("fill", love.graphics.getWidth() / 2 - 100, love.graphics.getHeight() / 2, 200, 50)
+
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.printf("Jogar", 0, love.graphics.getHeight() / 2 + 15, love.graphics.getWidth(), "center")
+end
 
 function love.mousepressed(x, y, button, istouch, presses)
-    if gameActive then
+    if gameOver then
+        local buttonX = love.graphics.getWidth() / 2 - 100
+        local buttonY = love.graphics.getHeight() / 2
+        local buttonWidth = 200
+        local buttonHeight = 50
+
+        if x > buttonX and x < buttonX + buttonWidth and y > buttonY and y < buttonY + buttonHeight then
+            -- Reiniciar o jogo
+            gameOver = false
+            gameActive = false
+            score = 0
+            foulOccurred = false
+            balls = {}
+            menu.load()
+        end
+    elseif gameActive then
         if button == 1 then
             startAiming(x, y)
         end
@@ -178,7 +205,6 @@ function setupBalls()
     end
 end
 
-
 function drawTable()
     local borderWidth = 20
     local holeRadius = 15
@@ -214,15 +240,9 @@ function drawBalls()
 end
 
 function updateBalls(dt)
-    local ballsMoving = false
-
     for i, ball in ipairs(balls) do
         ball.x = ball.x + ball.vx * dt
         ball.y = ball.y + ball.vy * dt
-
-        if ball.vx ~= 0 or ball.vy ~= 0 then
-            ballsMoving = true
-        end
 
         if ball.x - ball.radius < tableX or ball.x + ball.radius > tableX + tableWidth then
             ball.vx = -ball.vx
@@ -236,21 +256,7 @@ function updateBalls(dt)
     end
 
     checkPockets()
-
-    -- Só troca de turno quando ocorre uma falta
-    if foulOccurred == true then
-        foulOccurred = false -- Limpa a falta para o próximo turno
-        switchTurn()
-        
-       
-    end
-
     checkBallCollisions()
-end
-
--- Função para alternar o turno
-function switchTurn()
-    currentPlayer = 3 - currentPlayer
 end
 
 function updateCue()
@@ -317,4 +323,13 @@ function checkBallCollisions()
             end
         end
     end
+end
+
+function areAllBallsPocketed()
+    for _, ball in ipairs(balls) do
+        if ball.type ~= "cue" and ball.type ~= "8" then
+            return false
+        end
+    end
+    return true
 end
