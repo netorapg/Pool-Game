@@ -5,7 +5,7 @@ score = 0,
 foul = false}
 
 
-function gameState.load()
+function gameState.initialize()
     gameState.active = false
     gameState.over = false
     gameState.message = ""
@@ -16,6 +16,7 @@ end
 function gameState.startGame()
     gameState.active = true
     gameState.over = false
+    print("Jogo iniciado - Estado ativo")
 end
 
 function gameState.endGame(message)
@@ -32,7 +33,7 @@ function gameState.addScore(points)
 end
 
 function gameState.isGameActive()
-    return gameState.over
+    return gameState.active
 end
 
 function gameState.isGameOver()
@@ -43,12 +44,16 @@ function gameState.getScore()
     return gameState.score
 end
 
-function gameStae.getGameOverMessage()
+function gameState.getGameOverMessage()
     return gameState.message
 end
 
 function gameState.hasFoul()
     return gameState.foul
+end
+
+function gameState.setFoul(foul)
+    gameState.foul = foul
 end
 
 return gameState

@@ -16,14 +16,25 @@ local ballManager = {
         {"solid", {1, 0.5, 1}},   -- Lisa magenta
         {"striped", {0.5, 0.5, 0}},-- Listrada marrom
         {"solid", {1, 0, 0}}      -- Lisa branca
-    }
+    },
+    gameState = nil,
+    tableX = 0,
+    tableY = 0,
+    tableWidth = 0,
+    tableHeight = 0
 }
 
-function ballManager.load()
+function ballManager.initialize(gs)
+    ballManager.gameState = gs
     ballManager.balls = {}
 end
 
 function ballManager.setupBalls(tableX, tableY, tableWidth, tableHeight)
+    ballManager.tableX = tableX
+    ballManager.tableY = tableY
+    ballManager.tableWidth = tableWidth
+    ballManager.tableHeight = tableHeight
+
     ballManager.balls = {}
 
     -- Bola branca (cue)
@@ -64,6 +75,11 @@ function ballManager.setupBalls(tableX, tableY, tableWidth, tableHeight)
 end
 
 function ballManager.update(dt)
+    local tableX = ballManager.tableX
+    local tableY = ballManager.tableY
+    local tableWidth = ballManager.tableWidth
+    local tableHeight = ballManager.tableHeight
+
     for _, ball in ipairs(ballManager.balls) do
         -- Atualiza posição
         ball.x = ball.x + ball.vx * dt
@@ -71,13 +87,13 @@ function ballManager.update(dt)
 
         -- Verifica colisões com as bordas da mesa
         if ball.x - ball.radius < tableX or ball.x + ball.radius > tableX + tableWidth then
-            ball.vx = -ball.vx * 0.9  -- Adiciona um pouco de atrito
+            ball.vx = -ball.vx * 0.9  -- Adiciona atrito
         end
         if ball.y - ball.radius < tableY or ball.y + ball.radius > tableY + tableHeight then
-            ball.vy = -ball.vy * 0.9  -- Adiciona um pouco de atrito
+            ball.vy = -ball.vy * 0.9  -- Adiciona atrito
         end
 
-        -- Aplica atrito
+        -- Aplica atrito contínuo
         ball.vx = ball.vx * 0.99
         ball.vy = ball.vy * 0.99
     end
@@ -94,6 +110,11 @@ function ballManager.draw()
 end
 
 function ballManager.checkPockets()
+    local tableX = ballManager.tableX
+    local tableY = ballManager.tableY
+    local tableWidth = ballManager.tableWidth
+    local tableHeight = ballManager.tableHeight
+
     local holes = {
         {x = tableX, y = tableY},
         {x = tableX + tableWidth / 2, y = tableY},
@@ -118,34 +139,38 @@ function ballManager.checkPockets()
 end
 
 function handlePocketedBall(index, ball)
+    if not ballManager.gameState then
+        error("gameState not initialized in ballManager")
+    end
+
     if ball.type == "cue" then
-        -- Penalidade: bola branca encaçapada
-        gameState.setFoul(true)
+        ballManager.gameState.foul = true
         resetCueBall(ball)
     elseif ball.type == "8" then
         handleEightBallPocketed()
     else
-        -- Pontuação normal
-        gameState.addScore(1)
+        ballManager.gameState.score = ballManager.gameState.score + 1
         table.remove(ballManager.balls, index)
     end
 end
 
 function resetCueBall(ball)
-    ball.x, ball.y = tableX + 100, tableY + tableHeight / 2
-    ball.vx, ball.vy = 0, 0
+    ball.x = ballManager.tableX + 100
+    ball.y = ballManager.tableY + ballManager.tableHeight / 2
+    ball.vx = 0
+    ball.vy = 0
 end
 
 function handleEightBallPocketed()
     if require("modules.collisionManager").areAllBallsPocketed(ballManager.balls) then
-        gameState.endGame("Você venceu!")
+        ballManager.gameState.endGame("Você venceu!")
     else
-        gameState.endGame("Você perdeu!")
+        ballManager.gameState.endGame("Você perdeu!")
     end
 end
 
 function ballManager.getCueBall()
-    return ballManager.balls[1]  -- A primeira bola é sempre a bola branca
+    return ballManager.balls[1]
 end
 
 function ballManager.getBalls()

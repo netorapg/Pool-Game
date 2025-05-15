@@ -1,15 +1,21 @@
 local menu = require("menu")
 local gameState = require("modules.gameState")
+print("Carregando ballManager...")
 local ballManager = require("modules.ballManager")
+print("Carregando cueManager...")
 local cueManager = require("modules.cueManager")
+print("Carregando tableManager...")
 local tableManager = require("modules.tableManager")
 
+local tableX, tableY, tableWidth, tableHeight
+
 function love.load()
-    menu.load()
-    gameState.load()
-    ballManager.load()
-    cueManager.load(gameState, ballManager)
-    tableManager.load()
+    tableManager.initialize()
+    gameState.initialize()
+    ballManager.initialize(gameState)
+    cueManager.initialize(gameState, ballManager)
+    tableX, tableY, tableWidth, tableHeight = tableManager.getDimensions()
+    menu.load(gameState, ballManager, tableX, tableY, tableWidth, tableHeight)
 end
 
 function love.update(dt)
